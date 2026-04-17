@@ -1,4 +1,17 @@
-import { Transaction, Mission, Budget, Achievement } from './types';
+import { 
+  Transaction, Mission, Budget, Achievement 
+} from './types';
+import { 
+  ShoppingBag, Smartphone, Utensils, Plane, Car, Hotel, 
+  Heart, Award, TrendingUp, CreditCard, DollarSign,
+  Dumbbell, Fuel, Landmark, Briefcase, Car as TaxiIcon,
+  ArrowLeftRight, Activity, Building, BarChart, Bitcoin,
+  Coffee, Code, Cpu, Diamond, GlassWater, Home, Palmtree,
+  Settings, Star, User, UserCheck, Sparkles, Banknote,
+  Sofa
+} from 'lucide-react';
+import React from 'react';
+import { APP_COLORS } from './constants/colors';
 
 const now = new Date();
 const today = now.getTime();
@@ -179,3 +192,47 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: '7', title: 'Globalist', icon: 'public', earned: false },
   { id: '8', title: 'Alchemist', icon: 'auto_awesome', earned: false },
 ];
+
+export const ICON_OPTIONS = [
+  { id: 'shopping_bag', icon: ShoppingBag },
+  { id: 'smartphone', icon: Smartphone },
+  { id: 'restaurant', icon: Utensils },
+  { id: 'plane', icon: Plane },
+  { id: 'local_taxi', icon: TaxiIcon },
+  { id: 'hotel', icon: Hotel },
+  { id: 'heart', icon: Heart },
+  { id: 'award', icon: Award },
+  { id: 'trending-up', icon: TrendingUp },
+  { id: 'credit-card', icon: CreditCard },
+  { id: 'payments', icon: DollarSign },
+  { id: 'fitness_center', icon: Dumbbell },
+  { id: 'local_gas_station', icon: Fuel },
+  { id: 'landmark', icon: Landmark },
+  { id: 'briefcase', icon: Briefcase },
+  { id: 'swap_horiz', icon: ArrowLeftRight },
+  { id: 'activity', icon: Activity },
+  { id: 'building', icon: Building },
+  { id: 'bar-chart', icon: BarChart },
+  { id: 'bitcoin', icon: Bitcoin },
+  { id: 'coffee', icon: Coffee },
+  { id: 'code', icon: Code },
+  { id: 'cpu', icon: Cpu },
+  { id: 'diamond', icon: Diamond },
+  { id: 'glass-water', icon: GlassWater },
+  { id: 'home', icon: Home },
+  { id: 'palmtree', icon: Palmtree },
+  { id: 'settings', icon: Settings },
+  { id: 'star', icon: Star },
+  { id: 'user', icon: User },
+  { id: 'user-check', icon: UserCheck },
+  { id: 'sparkles', icon: Sparkles },
+  { id: 'banknote', icon: Banknote },
+  { id: 'sofa', icon: Sofa }
+];
+
+export const ICON_MAP: Record<string, React.ElementType> = ICON_OPTIONS.reduce((acc, opt) => ({
+  ...acc,
+  [opt.id]: opt.icon
+}), {});
+
+export const COLOR_OPTIONS = APP_COLORS.categories;

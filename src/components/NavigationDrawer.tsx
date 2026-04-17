@@ -9,21 +9,20 @@ import {
 interface NavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  profileImage: string;
-  onNavigate: (screen: 'home' | 'history' | 'budget' | 'growth' | 'settings' | 'wallet' | 'profile' | 'debt' | 'goals' | 'savings', source: 'drawer') => void;
+  profile: any;
+  onNavigate: (screen: any, source: 'drawer') => void;
 }
 
-export default function NavigationDrawer({ isOpen, onClose, profileImage, onNavigate }: NavigationDrawerProps) {
+export default function NavigationDrawer({ isOpen, onClose, profile, onNavigate }: NavigationDrawerProps) {
   const menuItems = [
     { icon: Home, label: 'Home', screen: 'home' as const },
     { icon: User, label: 'My profile', screen: 'profile' as const },
     { icon: History, label: 'History', screen: 'history' as const },
     { icon: Wallet, label: 'Wallet', screen: 'wallet' as const },
+    { icon: TrendingUp, label: 'Investing', screen: 'investing' as const },
     { icon: Landmark, label: 'Budget', screen: 'budget' as const },
-    { icon: TrendingUp, label: 'Growth', screen: 'growth' as const },
-    { icon: AlertCircle, label: 'Debt', screen: 'debt' as const },
-    { icon: Target, label: 'Goals', screen: 'goals' as const },
-    { icon: PiggyBank, label: 'Savings', screen: 'savings' as const },
+    { icon: Crown, label: 'Growth & Reserves', screen: 'growth' as const },
+    { icon: AlertCircle, label: 'Liabilities', screen: 'debt' as const },
     { icon: Settings, label: 'Settings', screen: 'settings' as const },
   ];
 
@@ -67,10 +66,10 @@ export default function NavigationDrawer({ isOpen, onClose, profileImage, onNavi
               </button>
 
               <div className="relative">
-                <div className="w-20 h-20 rounded-2xl bg-surface-container-highest border border-primary/20 p-1 mb-6 group cursor-pointer">
+                <div className="w-20 h-20 rounded-2xl bg-surface-container-highest border border-primary/20 p-1 mb-6 group cursor-pointer" onClick={() => handleItemClick('profile')}>
                   <div className="w-full h-full rounded-xl overflow-hidden relative">
                     <img 
-                      src={profileImage} 
+                      src={profile?.image} 
                       alt="Profile" 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       referrerPolicy="no-referrer"
@@ -81,12 +80,12 @@ export default function NavigationDrawer({ isOpen, onClose, profileImage, onNavi
                 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="font-headline text-3xl text-white italic tracking-tight">Alex Sterling</h2>
+                    <h2 className="font-headline text-3xl text-white italic tracking-tight">{profile?.name}</h2>
                     <Crown className="w-4 h-4 text-primary" fill="currentColor" />
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                    <p className="font-sans text-[10px] uppercase tracking-[0.25em] text-primary font-bold">Elite Member</p>
+                    <p className="font-sans text-[10px] uppercase tracking-[0.25em] text-primary font-bold">{profile?.role}</p>
                   </div>
                 </div>
               </div>

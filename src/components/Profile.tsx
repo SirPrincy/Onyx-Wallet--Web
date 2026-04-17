@@ -6,7 +6,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProfileProps {
-  profileImage: string;
+  profile: any;
 }
 
 const MOCK_INSTITUTIONS = [
@@ -18,7 +18,7 @@ const MOCK_INSTITUTIONS = [
   { name: 'Barclays Wealth', icon: Landmark, color: 'bg-sky-500/10 text-sky-500' },
 ];
 
-export default function Profile({ profileImage }: ProfileProps) {
+export default function Profile({ profile }: ProfileProps) {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLinking, setIsLinking] = useState(false);
@@ -47,46 +47,54 @@ export default function Profile({ profileImage }: ProfileProps) {
       {/* User Identity Profile */}
       <section className="flex flex-col items-center text-center pt-4">
         <div className="relative mb-6">
-          <div className="w-28 h-28 rounded-full p-1 bg-gradient-to-tr from-primary to-transparent">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-background">
+          <div className="w-28 h-28 rounded-[2rem] p-1 bg-gradient-to-tr from-primary to-transparent rotate-3">
+            <div className="w-full h-full rounded-[1.8rem] overflow-hidden border-4 border-background -rotate-3">
               <img 
-                className="w-full h-full object-cover" 
-                src={profileImage} 
-                alt="Julian Thorne"
+                className="w-full h-full object-cover scale-110" 
+                src={profile?.image} 
+                alt={profile?.name}
                 referrerPolicy="no-referrer"
               />
             </div>
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-br from-primary to-primary-container text-on-primary text-[10px] font-bold tracking-widest uppercase rounded-full whitespace-nowrap shadow-lg">
-            Black Card Member
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-background border border-primary/30 text-primary text-[9px] font-bold tracking-widest uppercase rounded-full shadow-2xl backdrop-blur-md">
+            {profile?.role}
           </div>
         </div>
-        <h2 className="font-headline text-4xl mb-1 text-on-surface">Julian Thorne</h2>
-        <p className="text-on-surface-variant font-body text-sm tracking-wide">j.thorne@alchemist.ltd</p>
+        <div className="flex items-center gap-2 mb-1 justify-center">
+          <h2 className="font-headline text-4xl text-on-surface italic">{profile?.name}</h2>
+          <Verified className="w-5 h-5 text-blue-400 fill-blue-400/10" />
+        </div>
+        <p className="text-on-surface-variant font-mono text-[10px] tracking-widest uppercase opacity-60">
+          ID: MOULA-{profile?.id}00X-{profile?.name?.split(' ')[0].toUpperCase()}
+        </p>
       </section>
 
       {/* Financial Tier Details */}
       <section>
-        <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -mr-16 -mt-16"></div>
-          <div className="flex justify-between items-start mb-6">
+        <div className="bg-surface-container-low rounded-[1.5rem] p-8 border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[100px] -mr-32 -mt-32 group-hover:bg-primary/10 transition-colors"></div>
+          <div className="flex justify-between items-start mb-8 relative z-10">
             <div>
-              <p className="text-[10px] font-bold tracking-widest uppercase text-primary mb-1">Current Standing</p>
-              <h3 className="font-headline text-2xl text-on-surface">Wealth Tier IV</h3>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-primary mb-2 italic">Global Ranking</p>
+              <h3 className="font-headline text-3xl text-on-surface">Wealth Tier IV</h3>
+              <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Status: Platinum Reserve</p>
             </div>
-            <Award className="w-6 h-6 text-primary" />
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Award className="w-7 h-7 text-primary" />
+            </div>
           </div>
-          <div className="space-y-2 mb-6">
-            <div className="flex justify-between text-[11px] font-medium tracking-wide uppercase">
+          <div className="space-y-3 mb-8 relative z-10">
+            <div className="flex justify-between text-[10px] font-bold tracking-[0.1em] uppercase">
               <span className="text-on-surface-variant">Progress to Tier V</span>
-              <span className="text-primary">85%</span>
+              <span className="text-primary tracking-widest">85% Complete</span>
             </div>
-            <div className="h-[2px] w-full bg-surface-container-highest">
-              <div className="h-full bg-primary" style={{ width: '85%' }}></div>
+            <div className="h-1 w-full bg-surface-container-highest rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: '85%' }}></div>
             </div>
           </div>
-          <button className="text-primary text-xs font-semibold tracking-wide uppercase flex items-center gap-1 hover:opacity-80 transition-opacity">
-            View Tier Benefits <ChevronRight className="w-3 h-3" />
+          <button className="text-primary text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-2 hover:gap-3 transition-all relative z-10">
+            Benefits Portfolio <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </section>
@@ -146,30 +154,45 @@ export default function Profile({ profileImage }: ProfileProps) {
         </div>
       </section>
 
-      {/* Legal & Verification */}
-      <section>
-        <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant/60 mb-4 px-1">Compliance & Legal</h4>
-        <div className="bg-surface-container-low rounded-xl border border-outline-variant/5 overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-outline-variant/10">
-            <div className="flex items-center gap-3">
-              <Verified className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-on-surface">KYC Status</span>
+      {/* Account Management & Security */}
+      <section className="space-y-6">
+        <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-on-surface-variant/60 px-1">Session Management</h4>
+        <div className="space-y-4">
+          <div className="p-6 rounded-2xl bg-surface-container border border-white/5 flex items-center justify-between group hover:bg-surface-container-high transition-all">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center border border-white/10 group-hover:border-primary/30 transition-colors">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h5 className="font-semibold text-sm text-on-surface">Private Passcode</h5>
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5">Active • Secure</p>
+              </div>
             </div>
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Verified</span>
+            <button className="px-4 py-2 rounded-lg bg-surface-container-highest text-[10px] font-bold uppercase tracking-widest text-primary hover:bg-primary hover:text-background transition-all">
+              Update
+            </button>
           </div>
-          <div className="flex items-center justify-between p-4 border-b border-outline-variant/10 hover:bg-surface-container transition-colors cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors" />
-              <span className="text-sm font-medium text-on-surface">Terms of Service</span>
+
+          <div className="p-6 rounded-2xl bg-surface-container border border-white/5 flex items-center justify-between group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-background flex items-center justify-center border border-white/10">
+                <LogOut className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h5 className="font-semibold text-sm text-on-surface italic">Switch Account</h5>
+                <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-0.5">End current session</p>
+              </div>
             </div>
-            <ExternalLink className="w-4 h-4 text-outline-variant" />
-          </div>
-          <div className="flex items-center justify-between p-4 hover:bg-surface-container transition-colors cursor-pointer group">
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-on-surface-variant group-hover:text-primary transition-colors" />
-              <span className="text-sm font-medium text-on-surface">Privacy Policy</span>
-            </div>
-            <ExternalLink className="w-4 h-4 text-outline-variant" />
+            <button 
+              onClick={() => {
+                localStorage.removeItem('isMoulaAuthenticated');
+                localStorage.removeItem('moula_current_user');
+                window.location.reload();
+              }}
+              className="px-4 py-2 rounded-lg bg-red-400/10 text-[10px] font-bold uppercase tracking-widest text-red-400 hover:bg-red-400 hover:text-white transition-all"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </section>

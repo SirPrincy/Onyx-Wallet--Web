@@ -1,44 +1,62 @@
-import React, { useState } from 'react';
-import { X, ArrowUpRight, ArrowDown, ArrowLeftRight, Calendar, Paperclip, CheckCircle, ChevronRight, Wallet, ShoppingBag, Utensils, Banknote, Car, Dumbbell, Hotel, Fuel, Landmark, Briefcase } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  X, ArrowUpRight, ArrowDown as ArrowDownIcon, ArrowLeftRight, 
+  Calendar, Paperclip, CheckCircle, ChevronRight, 
+  Wallet, ShoppingBag, Utensils, Banknote, 
+  Car, Dumbbell, Hotel, Fuel, Landmark, 
+  Briefcase, Smartphone, Heart, Plane, 
+  Award, TrendingUp, CreditCard, DollarSign,
+  ArrowLeft, Check, Clock
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTransactions } from '../context/TransactionContext';
 import { Transaction } from '../types';
-
-const CATEGORIES = [
-  { name: 'Luxury Goods', icon: ShoppingBag, id: 'shopping_bag' },
-  { name: 'Dining', icon: Utensils, id: 'restaurant' },
-  { name: 'Monthly', icon: Banknote, id: 'payments' },
-  { name: 'Transport', icon: Car, id: 'local_taxi' },
-  { name: 'Wellness', icon: Dumbbell, id: 'fitness_center' },
-  { name: 'Hospitality', icon: Hotel, id: 'hotel' },
-  { name: 'Private Aviation', icon: Fuel, id: 'local_gas_station' },
-  { name: 'Investment', icon: Landmark, id: 'landmark' },
-  { name: 'Business', icon: Briefcase, id: 'briefcase' },
-];
-
-const WALLETS = [
-  { name: 'Main Vault', balance: 482000, id: 'main' },
-  { name: 'Offshore Account', balance: 1250000, id: 'offshore' },
-  { name: 'Crypto Cold Room', balance: 84000, id: 'crypto' },
-];
+import { ICON_MAP } from '../constants';
 
 export default function NewTransaction({ onClose, editTransaction }: { onClose: () => void, editTransaction?: Transaction }) {
-  const { addTransaction, updateTransaction } = useTransactions();
+  const { addTransaction, updateTransaction, categories, wallets } = useTransactions();
   
   // Initialize state based on editTransaction if present
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(editTransaction?.type || 'expense');
   const [amount, setAmount] = useState(editTransaction ? Math.abs(editTransaction.amount).toString() : '');
-  const [selectedCategory, setSelectedCategory] = useState(
-    editTransaction ? (CATEGORIES.find(c => c.name === editTransaction.category) || CATEGORIES[0]) : CATEGORIES[0]
-  );
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    if (editTransaction) {
+      if (editTransaction.type === 'transfer') {
+        const transferCat = categories.find(c => c.name === 'Transfer');
+        return transferCat || categories[0];
+      }
+      return (categories.find(c => c.name === editTransaction.category) || categories.find(c => c.type === editTransaction.type) || categories[0]);
+    }
+    return categories.find(c => c.type === 'expense') || categories[0];
+  });
+  const [selectedSubcategory, setSelectedSubcategory] = useState(editTransaction?.subcategory || '');
+
   const [selectedWallet, setSelectedWallet] = useState(
-    editTransaction ? (WALLETS.find(w => w.id === editTransaction.walletId) || WALLETS[0]) : WALLETS[0]
+    editTransaction ? (wallets.find(w => w.id === editTransaction.walletId) || wallets[0]) : wallets[0]
   );
-  const [toWallet, setToWallet] = useState(WALLETS[1]);
+  const [toWallet, setToWallet] = useState(wallets[1] || wallets[0]);
   const [description, setDescription] = useState(editTransaction?.title || '');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [dateTime, setDateTime] = useState(() => {
+    const d = editTransaction ? new Date(editTransaction.timestamp) : new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+
+  useEffect(() => {
+    // Reset category if it doesn't match the new type (and not a transfer)
+    if (type !== 'transfer' && selectedCategory && selectedCategory.type !== type) {
+      const firstMatch = categories.find(c => c.type === type);
+      if (firstMatch) setSelectedCategory(firstMatch);
+    }
+  }, [type, categories, selectedCategory]);
+
+  // Filtered categories based on type
+  const filteredCategories = useMemo(() => {
+    return categories.filter(c => c.type === (type === 'transfer' ? 'expense' : type));
+  }, [categories, type]);
   
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [pickerStep, setPickerStep] = useState<'category' | 'subcategory'>('category');
   const [walletPickerMode, setWalletPickerMode] = useState<'single' | 'from' | 'to'>('single');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -48,20 +66,41 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
     
     setIsSubmitting(true);
     
+    const [dDate, dTime] = dateTime.split('T');
+    const combinedDate = new Date(dateTime);
+    const timestamp = isNaN(combinedDate.getTime()) ? Date.now() : combinedDate.getTime();
+
+    const formattedDate = () => {
+      const today = new Date().toISOString().split('T')[0];
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      if (dDate === today) return 'Today';
+      if (dDate === yesterday) return 'Yesterday';
+      return new Date(dDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const commonBase = {
+      date: formattedDate(),
+      time: dTime,
+      timestamp: timestamp,
+      walletId: selectedWallet.id,
+    };
+
     const txData = type === 'transfer' ? {
+      ...commonBase,
       title: description || `Transfer: ${selectedWallet.name} → ${toWallet.name}`,
       amount: parseFloat(amount),
       category: 'Transfer',
       icon: 'swap_horiz',
       type: 'transfer' as const,
-      walletId: selectedWallet.id,
     } : {
+      ...commonBase,
       title: description || selectedCategory.name,
       amount: type === 'expense' ? -parseFloat(amount) : parseFloat(amount),
       category: selectedCategory.name,
+      subcategory: selectedSubcategory || undefined,
+      subcategoryIcon: selectedSubcategory ? selectedCategory.subcategories.find(s => s.name === selectedSubcategory)?.icon : undefined,
       icon: selectedCategory.id,
       type: type,
-      walletId: selectedWallet.id,
     };
 
     if (editTransaction) {
@@ -128,7 +167,7 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
             onClick={() => setType('income')}
             className={`group flex flex-col items-center justify-center py-6 rounded-xl transition-all duration-300 border ${type === 'income' ? 'bg-surface-container border-primary/40 shadow-lg shadow-primary/5' : 'bg-surface-container-low border-outline-variant/10 hover:bg-surface-container'}`}
           >
-            <ArrowDown className={`${type === 'income' ? 'text-primary' : 'text-on-surface-variant'} mb-2 w-8 h-8 group-hover:scale-110 transition-transform`} fill={type === 'income' ? 'currentColor' : 'none'} />
+            <ArrowDownIcon className={`${type === 'income' ? 'text-primary' : 'text-on-surface-variant'} mb-2 w-8 h-8 group-hover:scale-110 transition-transform`} fill={type === 'income' ? 'currentColor' : 'none'} />
             <span className={`text-[10px] uppercase tracking-widest font-semibold ${type === 'income' ? 'text-primary' : 'text-on-surface-variant'}`}>Income</span>
           </button>
           <button 
@@ -156,23 +195,40 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {type !== 'transfer' ? (
+            {type !== 'transfer' && (
               <div 
-                onClick={() => setShowCategoryPicker(true)}
+                onClick={() => {
+                  setPickerStep('category');
+                  setShowCategoryPicker(true);
+                }}
                 className="flex flex-col bg-surface-container-low p-6 rounded-2xl hover:bg-surface-container transition-colors cursor-pointer group border border-white/5"
               >
-                <label className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant mb-4">Category</label>
+                <div className="flex items-center justify-between mb-4">
+                  <label className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant">Classification</label>
+                  {selectedSubcategory && (
+                    <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                      {selectedSubcategory}
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
-                      <div className="text-primary-container"><selectedCategory.icon className="w-5 h-5" /></div>
+                      <div className="text-primary-container">
+                        {React.createElement((selectedSubcategory && (selectedCategory?.subcategories as any[]).find(s => s.name === selectedSubcategory)?.icon ? ICON_MAP[(selectedCategory?.subcategories as any[]).find(s => s.name === selectedSubcategory).icon] : ICON_MAP[selectedCategory.icon]) || ShoppingBag, { className: 'w-5 h-5' })}
+                      </div>
                     </div>
-                    <span className="text-on-surface font-medium">{selectedCategory.name}</span>
+                    <div>
+                      <span className="text-on-surface font-medium block">{selectedCategory.name}</span>
+                      <span className="text-xs text-on-surface-variant">{selectedSubcategory || 'No subcategory selected'}</span>
+                    </div>
                   </div>
                   <ChevronRight className="text-on-surface-variant group-hover:translate-x-1 transition-transform w-5 h-5" />
                 </div>
               </div>
-            ) : (
+            )}
+
+            {type === 'transfer' && (
               <div 
                 onClick={() => setWalletPickerMode('from')}
                 className="flex flex-col bg-surface-container-low p-6 rounded-2xl hover:bg-surface-container transition-colors cursor-pointer group border border-white/5"
@@ -210,19 +266,25 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
               </div>
             </div>
 
-            <div className="flex flex-col bg-surface-container-low p-6 rounded-2xl hover:bg-surface-container transition-colors group border border-white/5">
-              <label className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant mb-4">Date</label>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 w-full">
-                  <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center">
-                    <Calendar className="text-primary-container w-5 h-5" />
-                  </div>
+            <div className="flex flex-col bg-surface-container-low p-6 rounded-3xl border border-white/5 hover:bg-surface-container transition-colors group">
+              <label className="text-[10px] uppercase tracking-[0.2em] font-semibold text-on-surface-variant mb-4 flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                Transaction Timing
+              </label>
+              <div className="flex items-center gap-4 w-full">
+                <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
                   <input 
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="bg-transparent border-none p-0 text-on-surface font-medium focus:ring-0 w-full"
+                    type="datetime-local"
+                    value={dateTime}
+                    onChange={(e) => setDateTime(e.target.value)}
+                    className="bg-transparent border-none p-0 text-on-surface font-medium focus:ring-0 w-full text-lg cursor-pointer"
                   />
+                  <p className="text-[10px] text-on-surface-variant mt-1 font-mono uppercase tracking-widest opacity-40">
+                    {new Date(dateTime).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </p>
                 </div>
               </div>
             </div>
@@ -280,27 +342,94 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              className="fixed bottom-0 left-0 right-0 bg-surface-container-low rounded-t-[2rem] z-[120] p-8 max-h-[70vh] overflow-y-auto no-scrollbar border-t border-white/10"
+              className="fixed bottom-0 left-0 right-0 bg-surface-container-low rounded-t-[2rem] z-[120] p-8 max-h-[85vh] overflow-y-auto no-scrollbar border-t border-white/10"
             >
               <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-8" />
-              <h3 className="font-headline text-3xl text-on-surface mb-8 italic">Select Category</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {CATEGORIES.map((cat) => (
+              
+              <div className="flex items-center gap-4 mb-8">
+                {pickerStep === 'subcategory' && (
+                  <button 
+                    onClick={() => setPickerStep('category')}
+                    className="p-2 -ml-2 rounded-full hover:bg-white/5 text-on-surface-variant"
+                  >
+                    <ArrowLeft className="w-6 h-6" />
+                  </button>
+                )}
+                <h3 className="font-headline text-3xl text-on-surface italic">
+                  {pickerStep === 'category' ? 'Select Category' : `Subset: ${selectedCategory.name}`}
+                </h3>
+              </div>
+
+              {pickerStep === 'category' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {categories
+                    .filter(c => type === 'transfer' ? c.type === 'expense' : c.type === type)
+                    .map((cat) => {
+                      const IconComp = ICON_MAP[cat.icon] || ShoppingBag;
+                      const isSelected = selectedCategory.id === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setSelectedCategory(cat);
+                            if (cat.subcategories.length > 0) {
+                              setPickerStep('subcategory');
+                            } else {
+                              setSelectedSubcategory('');
+                              setShowCategoryPicker(false);
+                            }
+                          }}
+                          className={`flex items-center gap-4 p-4 rounded-2xl transition-all border ${isSelected ? 'bg-primary/10 border-primary/40' : 'bg-surface-container-highest/50 border-transparent hover:bg-surface-container-highest line-clamp-1 text-left'}`}
+                        >
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'text-primary' : 'text-on-surface-variant'}`}>
+                            <IconComp className="w-5 h-5" />
+                          </div>
+                          <span className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-on-surface'}`}>{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              ) : (
+                <div className="space-y-3">
                   <button
-                    key={cat.id}
                     onClick={() => {
-                      setSelectedCategory(cat);
+                      setSelectedSubcategory('');
                       setShowCategoryPicker(false);
                     }}
-                    className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${selectedCategory.id === cat.id ? 'bg-primary/10 border border-primary/40' : 'bg-surface-container-highest/50 border border-transparent hover:bg-surface-container-highest'}`}
+                    className={`w-full flex items-center justify-between p-5 rounded-2xl transition-all bg-surface-container-highest/30 border border-transparent hover:border-white/10 text-left`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedCategory.id === cat.id ? 'text-primary' : 'text-on-surface-variant'}`}>
-                      <cat.icon className="w-5 h-5" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-on-surface-variant">
+                        <X className="w-5 h-5 opacity-40" />
+                      </div>
+                      <span className="text-on-surface font-medium">No specific subcategory</span>
                     </div>
-                    <span className={`font-medium ${selectedCategory.id === cat.id ? 'text-primary' : 'text-on-surface'}`}>{cat.name}</span>
+                    {selectedSubcategory === '' && <Check className="w-5 h-5 text-primary" />}
                   </button>
-                ))}
-              </div>
+                  {selectedCategory.subcategories.map((sub: any) => {
+                    const SubIcon = ICON_MAP[sub.icon] || ShoppingBag;
+                    const isSelected = selectedSubcategory === sub.name;
+                    return (
+                      <button
+                        key={sub.name}
+                        onClick={() => {
+                          setSelectedSubcategory(sub.name);
+                          setShowCategoryPicker(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-5 rounded-2xl transition-all ${isSelected ? 'bg-primary/10 border-primary/40' : 'bg-surface-container-highest/30 border-transparent hover:border-white/10'} text-left`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'bg-primary/20 text-primary' : 'bg-white/5 text-on-surface-variant'}`}>
+                            <SubIcon className="w-5 h-5" />
+                          </div>
+                          <span className={`font-medium ${isSelected ? 'text-primary' : 'text-on-surface'}`}>{sub.name}</span>
+                        </div>
+                        {isSelected && <Check className="w-5 h-5 text-primary" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -328,7 +457,7 @@ export default function NewTransaction({ onClose, editTransaction }: { onClose: 
                 {walletPickerMode === 'from' ? 'Select Source Wallet' : walletPickerMode === 'to' ? 'Select Destination Wallet' : 'Select Wallet'}
               </h3>
               <div className="space-y-4">
-                {WALLETS.map((wallet) => {
+                {wallets.map((wallet) => {
                   const isSelected = walletPickerMode === 'from' ? selectedWallet.id === wallet.id : toWallet.id === wallet.id;
                   return (
                     <button

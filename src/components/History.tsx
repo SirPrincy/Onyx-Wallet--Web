@@ -3,25 +3,14 @@ import {
   Search, ShoppingBag, Utensils, Banknote, 
   Car, Dumbbell, ArrowLeftRight, History as HistoryIcon,
   Filter, X, Check, Hotel, Fuel, Landmark, Briefcase,
-  Edit2, Trash2, Calendar, Clock, Tag, Wallet
+  Edit2, Trash2, Calendar, Clock, Tag, Wallet,
+  Star, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useTransactions } from '../context/TransactionContext';
 import { Transaction } from '../types';
 import NewTransaction from './NewTransaction';
-
-const IconMap: Record<string, React.ElementType> = {
-  shopping_bag: ShoppingBag,
-  restaurant: Utensils,
-  payments: Banknote,
-  local_taxi: Car,
-  fitness_center: Dumbbell,
-  swap_horiz: ArrowLeftRight,
-  hotel: Hotel,
-  local_gas_station: Fuel,
-  landmark: Landmark,
-  briefcase: Briefcase,
-};
+import { ICON_MAP } from '../constants';
 
 type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 
@@ -37,6 +26,7 @@ export default function History() {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -45,10 +35,11 @@ export default function History() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this transaction?')) {
-      deleteTransaction(id);
+  const handleDelete = () => {
+    if (selectedTx) {
+      deleteTransaction(selectedTx.id);
       setSelectedTx(null);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -209,10 +200,18 @@ export default function History() {
             <input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-white/5 rounded-xl py-4 pl-12 pr-4 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary/40 transition-all" 
+              className="w-full bg-surface-container-lowest border border-white/5 rounded-xl py-4 pl-12 pr-12 text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary/40 transition-all" 
               placeholder="Search transactions..." 
               type="text"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/40 hover:text-on-surface transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button 
             onClick={() => setShowFilters(!showFilters)}
@@ -225,6 +224,13 @@ export default function History() {
             }`}
           >
             <Filter className="w-6 h-6" />
+            {isFilterActive && (
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(242,202,80,0.8)]"
+              />
+            )}
           </button>
         </div>
 
@@ -296,7 +302,7 @@ export default function History() {
             <h3 className="uppercase tracking-[0.2em] text-on-surface-variant/60 text-[10px] font-bold mb-4 ml-1">{date}</h3>
             <div className="space-y-1">
               {txs.map((tx) => {
-                const Icon = IconMap[tx.icon] || ShoppingBag;
+                const Icon = ICON_MAP[tx.subcategoryIcon || tx.icon] || ShoppingBag;
                 return (
                   <motion.div 
                     layout
@@ -312,7 +318,9 @@ export default function History() {
                       </div>
                       <div>
                         <p className="font-medium text-on-surface">{tx.title}</p>
-                        <p className="text-xs text-on-surface-variant/60">{tx.time} • {tx.category}</p>
+                        <p className="text-xs text-on-surface-variant/60">
+                          {tx.time} • {tx.category} {tx.subcategory && `/ ${tx.subcategory}`}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -370,7 +378,7 @@ export default function History() {
                 <div className="flex items-center justify-between p-6 rounded-2xl bg-surface-container-highest/30 border border-white/5">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
-                      {React.createElement(IconMap[selectedTx.icon] || ShoppingBag, { className: 'w-6 h-6' })}
+                      {React.createElement((selectedTx.subcategoryIcon ? ICON_MAP[selectedTx.subcategoryIcon] : ICON_MAP[selectedTx.icon]) || ShoppingBag, { className: 'w-6 h-6' })}
                     </div>
                     <div>
                       <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Amount</p>
@@ -399,9 +407,20 @@ export default function History() {
                   <div className="p-4 rounded-xl bg-surface-container-highest/20 border border-white/5">
                     <div className="flex items-center gap-2 mb-2 text-on-surface-variant">
                       <Tag className="w-3 h-3" />
-                      <span className="text-[10px] uppercase tracking-widest font-bold">Category</span>
+                      <span className="text-[10px] uppercase tracking-widest font-bold">Classification</span>
                     </div>
-                    <p className="text-sm text-on-surface">{selectedTx.category}</p>
+                    <div className="flex items-center gap-2">
+                       <p className="text-sm text-on-surface">{selectedTx.category}</p>
+                       {selectedTx.subcategory && (
+                         <>
+                           <ChevronRight className="w-3 h-3 text-white/20" />
+                           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">
+                             {selectedTx.subcategoryIcon && React.createElement(ICON_MAP[selectedTx.subcategoryIcon] || Star, { className: 'w-3 h-3 text-primary' })}
+                             <span className="text-xs text-primary font-medium">{selectedTx.subcategory}</span>
+                           </div>
+                         </>
+                       )}
+                    </div>
                   </div>
                   <div className="p-4 rounded-xl bg-surface-container-highest/20 border border-white/5">
                     <div className="flex items-center gap-2 mb-2 text-on-surface-variant">
@@ -420,10 +439,57 @@ export default function History() {
                     <Edit2 className="w-4 h-4" /> Edit
                   </button>
                   <button 
-                    onClick={() => handleDelete(selectedTx.id)}
+                    onClick={() => setShowDeleteConfirm(true)}
                     className="flex-1 py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-red-500/20 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" /> Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[130]"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-md bg-surface-container-low rounded-[2rem] z-[140] p-8 border border-white/10 shadow-2xl"
+            >
+              <div className="flex flex-col items-center text-center space-y-6">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                  <Trash2 className="w-10 h-10" />
+                </div>
+                <div>
+                  <h3 className="font-headline text-3xl text-on-surface italic mb-2">Confirm Deletion</h3>
+                  <p className="text-on-surface-variant text-sm leading-relaxed">
+                    This action is irreversible. Are you certain you wish to remove this transaction from your records?
+                  </p>
+                </div>
+                <div className="flex gap-3 w-full pt-4">
+                  <button 
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-4 rounded-xl bg-white/5 border border-white/10 text-on-surface text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleDelete}
+                    className="flex-1 py-4 rounded-xl bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-red-600 transition-colors shadow-lg shadow-red-500/20"
+                  >
+                    Delete
                   </button>
                 </div>
               </div>

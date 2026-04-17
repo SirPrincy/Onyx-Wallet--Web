@@ -4,6 +4,8 @@ export interface Transaction {
   id: string;
   title: string;
   category: string;
+  subcategory?: string;
+  subcategoryIcon?: string;
   amount: number;
   type: 'expense' | 'income' | 'transfer';
   date: string;
@@ -36,4 +38,29 @@ export interface Achievement {
   title: string;
   icon: string;
   earned: boolean;
+}
+
+export interface Wallet {
+  id: string;
+  name: string;
+  type: 'Credit Card' | 'Bank Account' | 'Cash' | 'Crypto' | 'Investment' | 'Property';
+  balance: number;
+  currency: string;
+  color: string;
+  icon?: string;
+  lastFour?: string;
+  provider?: string;
+  isVisible: boolean;
+}
+
+export interface Liability {
+  id: string;
+  name: string;
+  type: 'Mortgage' | 'Personal Loan' | 'Student Loan' | 'Credit Card' | 'Other' | 'Leasing';
+  totalAmount: number;
+  remainingAmount: number;
+  interestRate: number;
+  monthlyPayment: number;
+  dueDate: string;
+  provider: string;
 }

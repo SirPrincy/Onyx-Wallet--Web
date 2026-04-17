@@ -1,8 +1,9 @@
-import React from 'react';
-import { TrendingUp, CreditCard, ShoppingBag, Car, Hotel, Fuel, Landmark, Diamond, BarChart3 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { TrendingUp, CreditCard, ShoppingBag, Car, Hotel, Fuel, Landmark, Diamond, BarChart3, Clock, Wallet } from 'lucide-react';
 import { MISSIONS } from '../constants';
 import { motion } from 'motion/react';
 import { useTransactions } from '../context/TransactionContext';
+import IncomeStatement from './IncomeStatement';
 
 const IconMap: Record<string, React.ElementType> = {
   shopping_bag: ShoppingBag,
@@ -20,8 +21,56 @@ const IconMap: Record<string, React.ElementType> = {
   diamond: Diamond,
 };
 
-export default function Home({ onNavigate }: { onNavigate: (screen: 'home' | 'history' | 'budget' | 'growth') => void }) {
-  const { transactions } = useTransactions();
+export default function Home({ onNavigate }: { onNavigate: (screen: 'home' | 'history' | 'budget' | 'growth' | 'investing') => void }) {
+  const { transactions, recurringTransactions, savingsGoals, budgets, wallets } = useTransactions();
+
+  const totalLiquidity = useMemo(() => {
+    return wallets.reduce((sum, w) => sum + (w.type === 'Credit Card' ? -Math.abs(w.balance) : w.balance), 0);
+  }, [wallets]);
+
+  const safeToSpend = useMemo(() => {
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const daysRemaining = daysInMonth - now.getDate() + 1;
+
+    // 1. Expected Income this month (Recurring + Income already received)
+    const monthlyIncome = recurringTransactions
+      .filter(rt => rt.type === 'income' && rt.frequency === 'Monthly')
+      .reduce((sum, rt) => sum + rt.amount, 0);
+    
+    // 2. Already received income this month
+    const curMonthIncomeResult = transactions
+      .filter(tx => tx.type === 'income' && new Date(tx.timestamp).getMonth() === now.getMonth())
+      .reduce((sum, tx) => sum + tx.amount, 0);
+
+    // 3. Fixed Expenses (Recurring)
+    const fixedExpenses = recurringTransactions
+      .filter(rt => rt.type === 'expense' && rt.frequency === 'Monthly')
+      .reduce((sum, rt) => sum + rt.amount, 0);
+
+    // 4. Savings Targets (Simulated monthly target: 10% of remaining if not specified, 
+    // or we can use the difference between target and current divided by some months)
+    // For simplicity: let's say we want to put $5,000 aside for savings goals this month.
+    const savingsTarget = 5000; 
+
+    // 5. Already spent this month (Expenses)
+    const curMonthSpent = Math.abs(transactions
+      .filter(tx => tx.type === 'expense' && new Date(tx.timestamp).getMonth() === now.getMonth())
+      .reduce((sum, tx) => sum + tx.amount, 0));
+
+    const totalAvailable = monthlyIncome + curMonthIncomeResult - fixedExpenses - savingsTarget;
+    const remainingForMonth = totalAvailable - curMonthSpent;
+    
+    // Safe to spend today
+    const perDay = remainingForMonth / daysRemaining;
+
+    return {
+      monthly: Math.max(0, remainingForMonth),
+      daily: Math.max(0, perDay),
+      percent: Math.min(100, Math.max(0, (curMonthSpent / totalAvailable) * 100))
+    };
+  }, [transactions, recurringTransactions]);
+
   return (
     <div className="space-y-10 pb-12">
       {/* Total Liquidity Section */}
@@ -34,7 +83,9 @@ export default function Home({ onNavigate }: { onNavigate: (screen: 'home' | 'hi
             </svg>
           </div>
           <span className="text-primary-container font-headline text-5xl md:text-7xl">$</span>
-          <span className="text-on-surface font-headline text-6xl md:text-8xl tracking-tight">428,950.00</span>
+          <span className="text-on-surface font-headline text-6xl md:text-8xl tracking-tight">
+            {totalLiquidity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-low text-primary text-sm font-medium">
           <TrendingUp className="w-4 h-4" />
@@ -78,11 +129,59 @@ export default function Home({ onNavigate }: { onNavigate: (screen: 'home' | 'hi
         </div>
       </div>
 
+      {/* Safe-to-Spend Section */}
+      <section className="space-y-4">
+        <div className="flex justify-between items-end">
+          <h3 className="font-headline text-2xl uppercase tracking-wider text-on-surface-variant flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Safe-to-Spend
+          </h3>
+          <span className="text-[10px] text-on-surface-variant uppercase tracking-[0.2em]">Rest of month</span>
+        </div>
+        <div className="bg-surface-container p-8 rounded-3xl border border-white/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-3xl -z-10 group-hover:bg-primary/10 transition-colors"></div>
+          
+          <div className="flex items-center justify-between mb-8">
+            <div className="space-y-1">
+              <p className="text-5xl font-headline text-on-surface tracking-tight">${safeToSpend.monthly.toLocaleString()}</p>
+              <p className="text-[10px] text-on-surface-variant uppercase tracking-[0.3em] font-bold">Remaining in your vault</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-headline text-primary">${safeToSpend.daily.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              <p className="text-[10px] text-primary/60 uppercase tracking-widest font-bold">Per day limit</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex justify-between items-end text-[10px] font-bold uppercase tracking-widest">
+              <span className="text-on-surface-variant">Consumption Pulse</span>
+              <span className={safeToSpend.percent > 90 ? 'text-error' : 'text-primary'}>{safeToSpend.percent.toFixed(0)}%</span>
+            </div>
+            <div className="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${safeToSpend.percent}%` }}
+                className={`h-full ${safeToSpend.percent > 90 ? 'bg-error' : 'bg-primary'} transition-all`}
+              />
+            </div>
+          </div>
+
+          <p className="mt-6 text-[10px] text-on-surface-variant/60 italic leading-relaxed">
+            Basé sur vos flux récurrents et vos objectifs d'épargne. Dépensez moins de <span className="text-primary font-bold">${safeToSpend.daily.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span> aujourd'hui pour rester sur la trajectoire de votre patrimoine.
+          </p>
+        </div>
+      </section>
+
       {/* Active Portfolio Section */}
       <section className="space-y-4">
         <div className="flex justify-between items-end">
           <h3 className="font-headline text-2xl">Active Portfolio</h3>
-          <span className="text-primary font-sans text-[10px] uppercase tracking-widest cursor-pointer">Details</span>
+          <span 
+            onClick={() => onNavigate('investing')}
+            className="text-primary font-sans text-[10px] uppercase tracking-widest cursor-pointer hover:underline"
+          >
+            Details
+          </span>
         </div>
         <div className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/5">
           <div className="flex justify-between items-start mb-6">
@@ -149,6 +248,8 @@ export default function Home({ onNavigate }: { onNavigate: (screen: 'home' | 'hi
           })}
         </div>
       </section>
+
+      <IncomeStatement />
 
       {/* Spending Trends */}
       <section className="space-y-4">
