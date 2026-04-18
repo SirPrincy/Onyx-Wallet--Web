@@ -1,15 +1,15 @@
 import React from 'react';
-import { Home, History, Wallet, User, Plus } from 'lucide-react';
+import { Home, History, Wallet, TrendingUp, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 
-type NavItem = 'home' | 'history' | 'budget' | 'profile';
+type NavItem = 'home' | 'history' | 'budget' | 'growth' | 'profile';
 
 export default function BottomNav({ active, onChange, onPlusClick }: { active: NavItem; onChange: (item: NavItem) => void; onPlusClick: () => void }) {
   const items: { id: NavItem; label: string; icon: React.ElementType }[] = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'history', label: 'History', icon: History },
     { id: 'budget', label: 'Budget', icon: Wallet },
-    { id: 'profile', label: 'Account', icon: User },
+    { id: 'growth', label: 'Growth', icon: TrendingUp },
   ];
 
   return (
